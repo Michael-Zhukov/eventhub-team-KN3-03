@@ -18,3 +18,4 @@ build/
 
 # тести
 coverage/
+.vite/
