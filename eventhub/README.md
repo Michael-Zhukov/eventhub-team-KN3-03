@@ -19,7 +19,7 @@
 | Тиждень | Тема                      | Старт                                       | Еталон                                    |
 | ------- | ------------------------- | ------------------------------------------- | ----------------------------------------- |
 | 1       | Архітектура й контракт    | [`week-01-start`](https://github.com/severyn-courses/eventhub/tree/week-01-start)| [`week-01-done`](https://github.com/Michael-Zhukov/eventhub-team-KN3-03/tree/week-01/michael)|
-| 2       | Бекенд: шари й дисципліна | `week-02-start`(https://github.com/severyn-courses/eventhub/tree/week-02-start)| `week-02-done`(https://github.com/Michael-Zhukov/eventhub-team-KN3-03/tree/week-02/michael)|
+| 2       | Бекенд: шари й дисципліна | [`week-02-start`](https://github.com/severyn-courses/eventhub/tree/week-02-start)| [`week-02-done`](https://github.com/Michael-Zhukov/eventhub-team-KN3-03/tree/week-02/michael)|
 
 _(таблиця поповнюється щотижня)_
 
