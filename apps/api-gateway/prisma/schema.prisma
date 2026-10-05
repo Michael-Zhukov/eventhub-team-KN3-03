@@ -1,0 +1,34 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Venue {
+  id     String  @id @db.Uuid
+  name   String
+  city   String
+  events Event[]
+
+  @@index([city])
+}
+
+model Event {
+  id             String   @id @db.Uuid
+  title          String
+  description    String?
+  startsAt       DateTime @db.Timestamptz(3)
+  venueId        String   @db.Uuid
+  minPriceAmount Int
+  currency       String   @default("UAH") @db.Char(3)
+  availableSeats Int
+
+  venue Venue @relation(fields: [venueId], references: [id])
+
+  @@index([startsAt, id])
+  @@index([venueId, startsAt, id])
+}
