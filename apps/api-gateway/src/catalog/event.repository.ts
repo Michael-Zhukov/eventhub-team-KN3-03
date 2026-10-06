@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Event } from "@eventhub/contracts";
 
-import { EVENTS } from "./seed";
+import { PrismaService } from "../prisma.service";
 
 export interface CursorPosition {
   startsAt: string;
@@ -15,50 +15,113 @@ export interface FindParams {
   limit: number;
 }
 
-function byStartThenId(a: Event, b: Event): number {
-  if (a.startsAt !== b.startsAt) {
-    return a.startsAt.localeCompare(b.startsAt);
-  }
-
-  return a.id.localeCompare(b.id);
-}
-
 @Injectable()
 export class EventRepository {
-  private readonly events: Event[] = [...EVENTS].sort(byStartThenId);
+  constructor(private readonly prisma: PrismaService) {}
 
   async find(params: FindParams): Promise<Event[]> {
-    let rows = this.events;
+    const rows = await this.prisma.event.findMany({
+      where: {
+        ...(params.city
+          ? {
+              venue: {
+                city: {
+                  equals: params.city,
+                  mode: "insensitive",
+                },
+              },
+            }
+          : {}),
+        ...(params.from
+          ? {
+              startsAt: {
+                gte: new Date(`${params.from}T00:00:00Z`),
+              },
+            }
+          : {}),
+        ...(params.after
+          ? {
+              OR: [
+                {
+                  startsAt: {
+                    gt: new Date(params.after.startsAt),
+                  },
+                },
+                {
+                  startsAt: new Date(params.after.startsAt),
+                  id: {
+                    gt: params.after.id,
+                  },
+                },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        venue: true,
+      },
+      orderBy: [
+        {
+          startsAt: "asc",
+        },
+        {
+          id: "asc",
+        },
+      ],
+      take: params.limit + 1,
+    });
 
-    if (params.city) {
-      const needle = params.city.toLocaleLowerCase("uk");
-
-      rows = rows.filter(
-        (event) =>
-          event.venue.city.toLocaleLowerCase("uk") === needle,
-      );
-    }
-
-    if (params.from) {
-      rows = rows.filter(
-        (event) => event.startsAt >= `${params.from}T00:00:00Z`,
-      );
-    }
-
-    if (params.after) {
-      const { startsAt, id } = params.after;
-
-      rows = rows.filter(
-        (event) =>
-          event.startsAt > startsAt ||
-          (event.startsAt === startsAt && event.id > id),
-      );
-    }
-
-    return rows.slice(0, params.limit + 1);
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      ...(row.description !== null
+        ? { description: row.description }
+        : {}),
+      startsAt: row.startsAt.toISOString(),
+      venue: {
+        id: row.venue.id,
+        name: row.venue.name,
+        city: row.venue.city,
+      },
+      minPrice: {
+        amount: row.minPriceAmount,
+        currency: "UAH",
+      },
+      availableSeats: row.availableSeats,
+    }));
   }
 
   async byId(id: string): Promise<Event | undefined> {
-    return this.events.find((event) => event.id === id);
+    const row = await this.prisma.event.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        venue: true,
+      },
+    });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      title: row.title,
+      ...(row.description !== null
+        ? { description: row.description }
+        : {}),
+      startsAt: row.startsAt.toISOString(),
+      venue: {
+        id: row.venue.id,
+        name: row.venue.name,
+        city: row.venue.city,
+      },
+      minPrice: {
+        amount: row.minPriceAmount,
+        currency: "UAH",
+      },
+      availableSeats: row.availableSeats,
+    };
   }
 }
