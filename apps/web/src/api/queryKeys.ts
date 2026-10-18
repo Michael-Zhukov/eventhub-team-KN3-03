@@ -1,4 +1,4 @@
-import { CatalogFilters } from "./queries";
+import type { CatalogFilters } from "./queries";
 
 export const eventKeys = {
   all: ["events"] as const,

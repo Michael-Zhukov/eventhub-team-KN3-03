@@ -1,4 +1,7 @@
-import { api } from "./client"; // Перевірте шлях до вашого openapi-fetch клієнта
+import { api } from "./client";
+import type { paths } from "@eventhub/contracts";
+
+export type EventDto = paths["/events"]["get"]["responses"]["200"]["content"]["application/json"]["items"][number];
 
 export interface CatalogFilters {
   city?: string;
@@ -6,13 +9,13 @@ export interface CatalogFilters {
 }
 
 export interface EventPage {
-  items: any[];
+  items: EventDto[];
   nextCursor?: string | null;
 }
 
-const PAGE_SIZE = 6; // Зменшіть до 6 елементів, щоб побачити роботу гортання
+const PAGE_SIZE = 6;
 
-export async function fetchEvents(filters: CatalogFilters, cursor?: string): Promise<EventPage> {
+export async function fetchEvents(filters: CatalogFilters = {}, cursor?: string): Promise<EventPage> {
   const { data, error } = await api.GET("/events", {
     params: {
       query: {
@@ -24,6 +27,6 @@ export async function fetchEvents(filters: CatalogFilters, cursor?: string): Pro
     },
   });
 
-  if (error) throw error; // Найважливіший рядок!
+  if (error) throw error;
   return data as EventPage;
 }

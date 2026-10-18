@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type { Event } from "@eventhub/contracts";
 
-import { PrismaService } from "../prisma.service";
+import type { PrismaService } from "../prisma.service";
 
 export interface CursorPosition {
   startsAt: string;

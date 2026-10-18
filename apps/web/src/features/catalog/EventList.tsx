@@ -1,32 +1,31 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchEvents } from "../../api/queries";
-import { eventKeys } from "../../api/queryKeys"; // ключи кеша
+import { fetchEvents, type CatalogFilters } from "../../api/queries";
+import { eventKeys } from "../../api/queryKeys";
+import { useState } from "react";
 
 export function EventList() {
+  const [filters] = useState<CatalogFilters>({});
+
   const { data, isPending, isError, error } = useQuery({
-    queryKey: ["events", "list", { limit: 20 }], // Ключ для кеша
-    queryFn: () => fetchEvents({ limit: 20 }),
-                                                       staleTime: 1000 * 60 * 5, // Кеш свежий 5 минут
+    queryKey: eventKeys.list(filters),
+    queryFn: () => fetchEvents(filters),
+    staleTime: 1000 * 60 * 5,
   });
 
-  // 1. Состояние загрузки (Pending)
   if (isPending) {
     return <p>Завантаження подій...</p>;
   }
 
-  // 2. Состояние ошибки (Error)
   if (isError) {
     return <p role="alert">{error instanceof Error ? error.message : "Помилка"}</p>;
   }
 
   const events = data?.items ?? [];
 
-  // 3. Пустое состояние (Empty)
   if (events.length === 0) {
     return <p>Порожньо. Подій не знайдено.</p>;
   }
 
-  // 4. Отображение данных
   return (
     <ul className="event-list">
     {events.map((e) => (
