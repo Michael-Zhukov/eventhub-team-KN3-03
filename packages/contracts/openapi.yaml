@@ -1,3 +1,4 @@
+
 openapi: 3.1.0
 
 info:
@@ -110,7 +111,132 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  /auth/register:
+    post:
+      operationId: register
+      summary: Реєстрація нового користувача
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Користувача зареєстровано
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Некоректний email або пароль
+        "409":
+          description: Email уже зареєстровано
+
+  /auth/login:
+    post:
+      operationId: login
+      summary: Вхід користувача
+      tags: [auth]
+      description: >
+        Повертає access JWT у тілі відповіді та встановлює
+        refresh_token у HttpOnly cookie з SameSite=Strict,
+        Path=/auth і Secure у production.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Успішний вхід
+          headers:
+            Set-Cookie:
+              description: HttpOnly refresh_token cookie
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Некоректний формат запиту
+        "401":
+          description: Неправильний email або пароль
+
+  /auth/refresh:
+    post:
+      operationId: refresh
+      summary: Оновлення access-токена
+      tags: [auth]
+      description: >
+        Використовує refresh_token із cookie. Успішна ротація
+        видає новий refresh_token і робить попередній недійсним.
+        Повторне використання старого токена відкликає всю сім'ю.
+      security:
+        - refreshCookie: []
+      responses:
+        "200":
+          description: Токени успішно оновлено
+          headers:
+            Set-Cookie:
+              description: Новий HttpOnly refresh_token cookie
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Refresh-токен відсутній, недійсний або прострочений
+
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Вихід користувача
+      tags: [auth]
+      description: >
+        Відкликає сім'ю refresh-токенів, якщо cookie присутній,
+        та очищує refresh_token cookie.
+      security:
+        - refreshCookie: []
+      responses:
+        "204":
+          description: Вихід виконано, тіло відповіді відсутнє
+
+  /auth/me:
+    get:
+      operationId: getMe
+      summary: Профіль поточного користувача
+      tags: [auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Дані авторизованого користувача
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Access-токен відсутній або недійсний
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access JWT із терміном дії 900 секунд
+
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: refresh_token
+      description: >
+        Refresh-токен у HttpOnly cookie.
+        SameSite=Strict, Path=/auth, Secure у production.
+
   schemas:
     Event:
       type: object
@@ -151,6 +277,65 @@ components:
           type: [string, "null"]
           description: Курсор наступної сторінки; null — сторінок більше немає
 
+    User:
+      type: object
+      required: [id, email, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        role:
+          type: string
+          enum: [USER, ORGANIZER, ADMIN]
+        createdAt:
+          type: string
+          format: date-time
+
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          description: Email нормалізується через trim і lowercase
+        password:
+          type: string
+          format: password
+          minLength: 10
+          maxLength: 128
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+          minLength: 10
+          maxLength: 128
+
+    AuthResponse:
+      type: object
+      required: [accessToken, user]
+      properties:
+        accessToken:
+          type: string
+          description: JWT access-токен, TTL 900 секунд
+        user:
+          $ref: "#/components/schemas/User"
+
     Problem:
       type: object
       description: RFC 9457 Problem Details
@@ -187,4 +372,3 @@ components:
                 type: /errors/not-found
                 title: Подію не знайдено
                 status: 404
-
