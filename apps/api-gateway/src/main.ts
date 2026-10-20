@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import cookieParser from "cookie-parser";
 
 import { NestFactory } from "@nestjs/core";
 import { Logger } from "nestjs-pino";
@@ -12,6 +13,7 @@ async function bootstrap(): Promise<void> {
   });
 
   app.useLogger(app.get(Logger));
+  app.use(cookieParser());
 
   app.useGlobalPipes(new ZodValidationPipe());
 
