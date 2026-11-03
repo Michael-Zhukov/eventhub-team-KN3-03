@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+engineStrict: true
+
+allowBuilds:
+  esbuild: true
+  "@scarf/scarf": false
+  '@prisma/engines': true
+  prisma: true
+  argon2: true
