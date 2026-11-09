@@ -5,6 +5,7 @@ import { LoggerModule } from "nestjs-pino";
 import { CatalogModule } from "./catalog/catalog.module";
 import { HealthModule } from "./health/health.module";
 import { ProblemFilter } from "./common/problem/problem.filter";
+import { AuthModule } from "./auth/auth.module";
 
 @Module({
   imports: [
@@ -39,6 +40,9 @@ import { ProblemFilter } from "./common/problem/problem.filter";
     }),
     HealthModule,
     CatalogModule,
+    HealthModule,
+    CatalogModule,
+    AuthModule,
   ],
   providers: [
   {
