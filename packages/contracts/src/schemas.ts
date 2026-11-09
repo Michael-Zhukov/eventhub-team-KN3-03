@@ -21,3 +21,16 @@ export const eventIdParam = z.object({
 });
 
 export type EventIdParam = z.infer<typeof eventIdParam>;
+export const registerRequest = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(10).max(128),
+});
+
+export type RegisterRequest = z.infer<typeof registerRequest>;
+
+export const loginRequest = z.object({
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(10).max(128),
+});
+
+export type LoginRequest = z.infer<typeof loginRequest>;

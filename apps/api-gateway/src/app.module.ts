@@ -1,13 +1,20 @@
 import { Module } from "@nestjs/common";
 import { APP_FILTER } from "@nestjs/core";
 import { LoggerModule } from "nestjs-pino";
+import { ConfigModule } from "@nestjs/config";
+import * as path from "path";
 
 import { CatalogModule } from "./catalog/catalog.module";
 import { HealthModule } from "./health/health.module";
+import { AuthModule } from "./auth/auth.module";
 import { ProblemFilter } from "./common/problem/problem.filter";
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: path.resolve(process.cwd(), "apps/api-gateway", ".env"),
+    }),
     LoggerModule.forRoot({
       pinoHttp: {
         genReqId: (req) => {
@@ -20,7 +27,7 @@ import { ProblemFilter } from "./common/problem/problem.filter";
           return crypto.randomUUID();
         },
         customReceivedMessage: (req, res) => {
-        const requestId = (req as typeof req & { id: string }).id;
+          const requestId = (req as typeof req & { id: string }).id;
 
           res.setHeader("x-request-id", requestId);
           return `request ${requestId} ${req.method} ${req.url}`;
@@ -39,12 +46,16 @@ import { ProblemFilter } from "./common/problem/problem.filter";
     }),
     HealthModule,
     CatalogModule,
+    AuthModule,
   ],
   providers: [
-  {
-    provide: APP_FILTER,
-    useClass: ProblemFilter,
-  },
-],
+    {
+      provide: APP_FILTER,
+      useClass: ProblemFilter,
+    },
+  ],
 })
 export class AppModule {}
+
+
+
