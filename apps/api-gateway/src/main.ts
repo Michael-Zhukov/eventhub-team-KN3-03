@@ -1,4 +1,15 @@
+import * as path from "path";
+import * as dotenv from "dotenv";
+
+// Нативно проверяем абсолютный путь от корня монорепозитория pnpm и от папки приложения
+dotenv.config({ path: path.resolve(process.cwd(), "apps/api-gateway", ".env") });
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
+
 import "reflect-metadata";
+import cookieParser from "cookie-parser";
 
 import { NestFactory } from "@nestjs/core";
 import { Logger } from "nestjs-pino";
@@ -12,6 +23,7 @@ async function bootstrap(): Promise<void> {
   });
 
   app.useLogger(app.get(Logger));
+  app.use(cookieParser());
 
   app.useGlobalPipes(new ZodValidationPipe());
 
@@ -31,3 +43,9 @@ async function bootstrap(): Promise<void> {
 }
 
 void bootstrap();
+
+
+
+
+
+

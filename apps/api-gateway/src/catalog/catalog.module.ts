@@ -1,12 +1,16 @@
 import { Module } from "@nestjs/common";
-
-import { PrismaService } from "../prisma.service";
-import { CatalogController } from "./catalog.controller";
-import { EventRepository } from "./event.repository";
+import { JwtModule } from "@nestjs/jwt";
 import { CatalogService } from "./catalog.service";
+import { CatalogController } from "./catalog.controller";
+import { OrganizerController } from "./organizer.controller";
+import { EventRepository } from "./event.repository";
+import { PrismaService } from "../prisma.service";
 
 @Module({
-  controllers: [CatalogController],
+  imports: [
+    JwtModule.register({}),
+  ],
+  controllers: [CatalogController, OrganizerController],
   providers: [CatalogService, EventRepository, PrismaService],
   exports: [CatalogService],
 })

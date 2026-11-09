@@ -1,3 +1,12 @@
+model Venue {
+  id     String  @id @db.Uuid
+  name   String
+  city   String
+  events Event[]
+
+  @@index([city])
+}
+
 generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma"
@@ -6,15 +15,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-}
-
-model Venue {
-  id     String  @id @db.Uuid
-  name   String
-  city   String
-  events Event[]
-
-  @@index([city])
 }
 
 model Event {
@@ -27,8 +27,59 @@ model Event {
   currency       String   @default("UAH") @db.Char(3)
   availableSeats Int
 
-  venue Venue @relation(fields: [venueId], references: [id])
+  venue       Venue   @relation(fields: [venueId], references: [id])
+
+  organizerId String? @db.Uuid
+  organizer   User?   @relation("OrganizedEvents", fields: [organizerId], references: [id], onDelete: SetNull)
 
   @@index([startsAt, id])
   @@index([venueId, startsAt, id])
+  @@index([organizerId])
+}
+
+enum Role {
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+model User {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  email         String         @unique
+  passwordHash  String?        // <-- Сделали опциональным для Google-пользователей
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  refreshTokens RefreshToken[]
+
+  emailVerified   Boolean        @default(false)
+  organizedEvents Event[]        @relation("OrganizedEvents")
+  oauthAccounts   OAuthAccount[]
+}
+
+model OAuthAccount {
+  id              String   @id @default(uuid(7)) @db.Uuid
+  userId          String   @db.Uuid
+  provider        String
+  providerSubject String
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  familyId  String    @db.Uuid
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familyId])
+  @@index([userId])
 }
