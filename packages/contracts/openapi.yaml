@@ -323,7 +323,7 @@ components:
         password:
           type: string
           format: password
-          minLength: 10
+          minLength: 1
           maxLength: 128
 
     AuthResponse:

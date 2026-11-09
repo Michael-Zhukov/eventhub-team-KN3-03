@@ -107,3 +107,26 @@ test("incorrect password returns the same 401", async () => {
       error.message === "Invalid credentials",
   );
 });
+
+test("incorrect short password returns 401", async () => {
+  const prisma = {
+    user: {
+      findUnique: async () => exampleUser,
+    },
+  };
+
+  const service = Object.create(AuthService.prototype) as AuthService & {
+    prisma: typeof prisma;
+  };
+
+  service.prisma = prisma;
+  service.verifyPassword = async () => false;
+
+  await assert.rejects(
+    service.login("student@example.com", "wrong"),
+    (error: unknown) =>
+      error instanceof UnauthorizedException &&
+      error.getStatus() === 401 &&
+      error.message === "Invalid credentials",
+  );
+});

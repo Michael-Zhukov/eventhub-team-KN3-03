@@ -114,6 +114,32 @@ function createTestService(initialTokens: StoredToken[]) {
     },
   };
 
+  let transactionQueue = Promise.resolve();
+
+  const mockPrisma = prisma as typeof prisma & {
+    $transaction: (callback: (tx: typeof prisma) => Promise<unknown>) => Promise<unknown>;
+    $queryRaw: (...args: unknown[]) => Promise<number>;
+  };
+
+  mockPrisma.$queryRaw = async () => 1;
+
+  mockPrisma.$transaction = async (callback) => {
+    const previous = transactionQueue;
+    let release!: () => void;
+
+    transactionQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    await previous;
+
+    try {
+      return await callback(mockPrisma);
+    } finally {
+      release();
+    }
+  };
+
   const service = Object.create(
     RefreshTokenService.prototype,
   ) as RefreshTokenService & {
@@ -121,7 +147,7 @@ function createTestService(initialTokens: StoredToken[]) {
     logger: { warn: (message: string) => void };
   };
 
-  service.prisma = prisma;
+  service.prisma = mockPrisma;
   service.logger = {
     warn: (message: string) => {
       warnings.push(message);
@@ -238,5 +264,37 @@ test("logout revokes all tokens in the family", async () => {
   await assert.rejects(
     service.rotate(result.refreshToken),
     UnauthorizedException,
+  );
+});
+
+test("parallel refresh requests detect reuse and revoke the entire family", async () => {
+  const oldToken = "parallel-refresh-token";
+  const { service, tokens } = createTestService([
+    makeStoredToken(oldToken),
+  ]);
+
+  const results = await Promise.allSettled([
+    service.rotate(oldToken),
+    service.rotate(oldToken),
+  ]);
+
+  const successful = results.filter(
+    (result) => result.status === "fulfilled",
+  );
+  const rejected = results.filter(
+    (result) => result.status === "rejected",
+  );
+
+  assert.equal(successful.length, 1);
+  assert.equal(rejected.length, 1);
+
+  assert.equal(
+    (rejected[0] as PromiseRejectedResult).reason.getStatus(),
+    401,
+  );
+
+  assert.ok(
+    tokens.every((token) => token.revokedAt !== null),
+    "All tokens in the family must be revoked after reuse",
   );
 });
